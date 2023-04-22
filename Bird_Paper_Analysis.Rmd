@@ -1,0 +1,143 @@
+---
+title: "Final Bird Paper"
+author: "Adam Bruce"
+date: '2023-04-22'
+output: html_document
+---
+
+```{r, include = FALSE}
+library(tidyverse)
+library(knitr)
+library(dplyr)
+library(corrplot)
+library(skimr)
+library(grid)
+library(gridExtra)
+library(tidyselect)
+library(selectr)
+library(ISLR)
+library(forcats)
+library(corrplot)
+library(ggplot2)
+library(kableExtra)
+library(caret)
+library(grid)
+library(openintro)
+library(tidyverse)
+library(ISLR)
+library(caret)
+library(recipes)
+library(glmnet)
+library(gam)
+library(splines)
+library(earth)
+library(rpart)
+library(rpart.plot)
+library(ipred)
+library(e1071)
+library(ranger)
+library(pls)
+library(datasets)
+library(DescTools) 
+library(Hmisc)
+library(e1071)
+library(pwr)
+library(gapminder)
+library(car) 
+library(tibble)
+library(onewaytests) 
+library(rptR) 
+library(esc) 
+library(broom) 
+library(MASS) 
+library(corrgram) 
+library(rcompanion)
+library(FSA)
+library(lmtest) 
+library(lme4)
+library(lmerTest)
+library(Hmisc)
+library(nlme)
+library(GGally)
+library(factoextra)
+library(ISLR) 
+library(cluster) # for gower similarity and pam
+library(Rtsne)
+library(mixtools)
+library(mclust)
+library(lattice)
+require(pscl) # alternatively can use package ZIM for zero-inflated models
+
+Purdy_Data <- read_csv("~/Desktop/Wildlife_Ecology/BIRD_PAPER/R_Class_Bird_Data.csv")
+head(Purdy_Data)
+
+```
+
+## Calculate Summary Stats for Richness & Abundance Per Level
+
+```{r}
+
+Richness_Level <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEAN_Richness = mean(Richness), STD_Abundance = sd(Abundance), MIN_Richness = min(Richness), MAX_Richness = max(Richness), Sample_Size = n())
+
+Richness_Level
+
+kable(Richness_Level, booktabs = T, 
+      caption = "Core Vs Edge Habitat Species Richness Summary Statistics",
+      col.names = c("Habitat", "Mean Richness", "Standard Deviation", "Minimum Richness", "Maximum Richness", "Sample Size")) %>%
+  kable_styling(full_width = F)
+
+Abundance_Level <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEAN_Abundance = mean(Abundance), STD_Abundance = sd(Abundance),  MIN_Abundance = min(Abundance), MAX_Abundance = max(Abundance), Sample_Size = n())
+
+Abundance_Level
+
+kable(Abundance_Level, booktabs = T, 
+      caption = "Core Vs Edge Habitat Abundance Summary Statistics",
+      col.names = c("Habitat", "Mean Abundance", "Standard Deviation", "Minimum Abundance", "Maximum Abundance", "Sample Size")) %>%
+  kable_styling(full_width = F)
+
+```
+
+
+
+
+```{r}
+
+## Richness/level
+
+ggplot(Purdy_Data , aes(x=Habitat, y=Richness, fill=Habitat))+
+  geom_boxplot(color = "black")+
+  geom_jitter(width = 0.05)+
+  labs(x= "Habitat Type", y= "Bird Species Richness")+
+  scale_fill_manual(values = c("blue", "brown"))+
+  stat_summary(fun.y = mean, shape = 1, color = "magenta")
+
+## Abundance/level 
+
+ggplot(Purdy_Data , aes(x=Habitat, y=Abundance, fill=Habitat))+
+  geom_boxplot(color = "black")+
+  geom_jitter(width = 0.05)+
+  labs(x= "Habitat Type", y= "Overall Bird Abundance")+
+  scale_fill_manual(values = c("firebrick1", "green"))+
+  stat_summary(fun.y = mean, shape = 1, color = "darkblue")
+
+
+```
+
+
+## Check Statistical Assumptions
+
+```{r}
+
+
+
+
+```
+
+## Statistical Analysis
+
+```{r}
+
+
+
+
+```
