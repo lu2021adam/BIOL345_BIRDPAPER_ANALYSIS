@@ -68,7 +68,7 @@ library(mclust)
 library(lattice)
 require(pscl) # alternatively can use package ZIM for zero-inflated models
 
-Purdy_Data <- read_csv("~/Desktop/Wildlife_Ecology/BIRD_PAPER/R_Class_Bird_Data.csv")
+Purdy_Data <- read_csv("~/Desktop/Wildlife_Ecology/BIRD_PAPER/BIOL345_BIRDPAPER_ANALYSIS/R_Class_Bird_Data.csv")
 head(Purdy_Data)
 
 ```
@@ -127,17 +127,174 @@ ggplot(Purdy_Data , aes(x=Habitat, y=Abundance, fill=Habitat))+
 ## Check Statistical Assumptions
 
 ```{r}
+#### Homogeneity of Variance: Levene's Test
+
+# Null Hypothesis: The variances are Not different
+# Alternative Hypothesis: The variances are different
+
+# Abundance
+
+leveneTest(Abundance ~ Habitat, data = Purdy_Data)
+
+# P = 0.9327; Fail to Reject NUll, Variance equal.
 
 
+# Richness
 
+leveneTest(Richness ~ Habitat, data = Purdy_Data)
+
+# P = 0.6685; Fail to Reject NUll, Variance equal.
+
+#### Normality of Distribution: 
+
+# Visual Investigation
+
+Abundance_Distribution <- ggplot(Purdy_Data, aes(x = Abundance))+
+  geom_density(alpha = 0.8, fill = "blue", color = "magenta")+
+  xlab("Overall Bird Abundance")+
+  ylab("Frequency")+
+  labs(title = "Bird Abundance Distribution")
+
+Richness_Distribution <- ggplot(Purdy_Data, aes(x = Richness))+
+  geom_density(alpha = 0.8, fill = "firebrick1", color = "green")+
+  xlab("Species Richness")+
+  ylab("Frequency")+
+  labs(title = "Bird Richness Distribution")
+
+grid.arrange(Abundance_Distribution, Richness_Distribution, ncol=2)
+
+# Abundance appears somewhat skewed right, but a chance at normality. Richness appears "relatively" normal 
+
+# Shapiro Wilks Test
+
+#  P > 0.05, Supports Null Hypothesis (Normal Distribution)        
+# P < 0.05, Rejects Null Hypothesis (Not Normal Distribution)
+
+# Abundance: 
+
+shapiro.test(Purdy_Data$Abundance)
+
+# P = 0.0298; Reject NULL Hypothesis, Not Normally Distributed
+
+# USE WILCOXON NON-PARAMETRIC TEST
+
+# Richness:
+
+shapiro.test(Purdy_Data$Richness)
+
+# P = 0.1329; Fail to Reject NUll, Approximates Normal Distribution.
+
+# USE STANDARD T-TEST
 
 ```
 
 ## Statistical Analysis
 
 ```{r}
+#### T-Test of Means: Richness
 
+# Null Hypothesis: The means of the groups being compared are not different
+# Alternative Hypothesis: The means of the groups being compared are different
 
+t.test(Richness ~ Habitat, data= Purdy_Data, var.equal= TRUE)
+
+# P = 0.02919; t = -2.2945
+# REJECT NULL: true difference in means is not equal to 0!
+
+Richness_Means <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEAN_Richness = mean(Richness), Sample_Size = n())
+
+Richness_Means
+
+#### Wilcoxon Nonparametric Test of Medians (locations): Abundance
+
+wilcox.test(Abundance ~ Habitat, data = Purdy_Data)
+
+# P = 0.394; W = 98
+# Fail to Reject Null Hypothesis, true location shift (Median) is equal to zero
+# See Boxplots above! Medians are approximately the same!
+
+Abundance_Medians <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEDIAN_Abundance = median(Abundance), Sample_Size = n())
+
+Abundance_Medians
 
 
 ```
+## Visualization of Noise Level & Understory Density
+
+```{r}
+Purdy_Data$Noise_Level <- as.factor(Purdy_Data$Noise_Level)
+
+# Abundance BoxPlot
+
+ggplot(Purdy_Data , aes(x=Noise_Level, y=Abundance, fill=Habitat))+
+  geom_boxplot(color = "black")+
+  labs(x= "Site Noise Level", y= "Overall Bird Abundance")+
+  scale_fill_manual(values = c("firebrick1", "green"))
+
+# Summary By Noise
+
+Abundance_Noise_Habitat_Means <- Purdy_Data %>% group_by(Habitat, Noise_Level) %>% summarise(MEAN_Abundance = mean(Abundance), Sample_Size = n())
+
+Abundance_Noise_Habitat_Means
+
+
+# Richness BoxPlot
+
+ggplot(Purdy_Data , aes(x=Noise_Level, y=Richness, fill=Habitat))+
+  geom_boxplot(color = "black")+
+  labs(x= "Site Noise Level", y= "Bird Species Richness")+
+  scale_fill_manual(values = c("blue", "brown"))
+
+# Summary By Noise
+
+Richness_Noise_Habitat_Means <- Purdy_Data %>% group_by(Noise_Level, Habitat) %>% summarise(MEAN_Richness = mean(Richness), Sample_Size = n())
+
+Richness_Noise_Habitat_Means
+
+#### Understory Density
+
+Purdy_Data$Understory_Density <- as.factor(Purdy_Data$Understory_Density)
+
+# Abundance BoxPlot
+
+ggplot(Purdy_Data , aes(x=Understory_Density, y=Abundance, fill=Habitat))+
+  geom_boxplot(color = "black")+
+  labs(x= "Site Understory Density", y= "Overall Bird Abundance")
+
+Abundance_UNDER_HABITAT_Means <- Purdy_Data %>% group_by(Habitat, Understory_Density) %>% summarise(MEAN_Abundance = mean(Abundance), Sample_Size = n())
+
+Abundance_UNDER_HABITAT_Means
+
+# Richness BoxPlot
+
+ggplot(Purdy_Data , aes(x=Understory_Density, y=Richness, fill=Habitat))+
+  geom_boxplot(color = "black")+
+  labs(x= "Site Understory Density", y= "Bird Species Richness")
+
+Richness_UNDER_HABITAT_Means <- Purdy_Data %>% group_by(Habitat, Understory_Density) %>% summarise(MEAN_Richness = mean(Richness), Sample_Size = n())
+
+Richness_UNDER_HABITAT_Means
+
+```
+
+
+## Conclusions
+
+```{r}
+# Edge habitats support more species overall than core sites. However, overall abundance between the sites does not differ. Perhaps, this means core sites provide fewer unique niches than edge sites.
+
+# Noise does not appear to be a factor affecting edge vs core abundance or richness.
+
+# Core sites were predominantly light in understory density, n = 8 sites of 15, while edge sites were predominantly high in understory density, n = 9 sites of 16. Additionally, Edge Sites with high understory density appear to show higher richness than those of core sites. No difference appears to be shown in abundance based on understory density.       
+```
+
+
+
+
+
+
+
+
+
+
+
