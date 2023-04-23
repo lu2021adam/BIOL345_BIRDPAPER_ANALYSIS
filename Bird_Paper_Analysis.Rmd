@@ -67,6 +67,7 @@ library(mixtools)
 library(mclust)
 library(lattice)
 require(pscl) # alternatively can use package ZIM for zero-inflated models
+library(ggpubr)
 
 Purdy_Data <- read_csv("~/Desktop/Wildlife_Ecology/BIRD_PAPER/BIOL345_BIRDPAPER_ANALYSIS/R_Class_Bird_Data.csv")
 head(Purdy_Data)
@@ -77,7 +78,7 @@ head(Purdy_Data)
 
 ```{r}
 
-Richness_Level <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEAN_Richness = mean(Richness), STD_Abundance = sd(Abundance), MIN_Richness = min(Richness), MAX_Richness = max(Richness), Sample_Size = n())
+Richness_Level <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEAN_Richness = mean(Richness), STD_Abundance = sd(Richness), MIN_Richness = min(Richness), MAX_Richness = max(Richness), Sample_Size = n())
 
 Richness_Level
 
@@ -109,16 +110,25 @@ ggplot(Purdy_Data , aes(x=Habitat, y=Richness, fill=Habitat))+
   geom_jitter(width = 0.05)+
   labs(x= "Habitat Type", y= "Bird Species Richness")+
   scale_fill_manual(values = c("blue", "brown"))+
-  stat_summary(fun.y = mean, shape = 1, color = "magenta")
+  stat_summary(fun.y = mean, shape = 1, color = "magenta")+
+  stat_compare_means(method = "t.test")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  stat_compare_means(label = "p.signif", method = "t.test", ref.group = "Core") 
 
 ## Abundance/level 
 
 ggplot(Purdy_Data , aes(x=Habitat, y=Abundance, fill=Habitat))+
   geom_boxplot(color = "black")+
-  geom_jitter(width = 0.05)+
+  geom_jitter(width = 0.1)+
   labs(x= "Habitat Type", y= "Overall Bird Abundance")+
   scale_fill_manual(values = c("firebrick1", "green"))+
-  stat_summary(fun.y = mean, shape = 1, color = "darkblue")
+  stat_summary(fun.y = mean, shape = 1, color = "darkblue")+
+  stat_compare_means(method = "wilcox.test")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  stat_compare_means(label = "p.signif", method = "wilcox.test", ref.group = "Core")+
+  ylim(0,24)
 
 
 ```
@@ -144,6 +154,19 @@ leveneTest(Abundance ~ Habitat, data = Purdy_Data)
 leveneTest(Richness ~ Habitat, data = Purdy_Data)
 
 # P = 0.6685; Fail to Reject NUll, Variance equal.
+
+Analysis_Variable <- c("Abundance", "Richness")
+Distribution_Value <- c("F = 0.0073", "F = 0.1871")
+P_Value <- c("P = 0.9327", "P = 0.6685")
+Hypothesis <- c("Fail to Reject Null", "Fail to Reject Null")
+Interpretation <- c("Variance Equal", "Variance Equal")
+
+Levene_Statistical_Results <- as.data.frame(cbind(Analysis_Variable, Distribution_Value, P_Value, Hypothesis, Interpretation))
+
+kable(Levene_Statistical_Results, booktabs = T, 
+      caption = "Overall Abundance and Richness Levene Equality of Variance Test Results",
+      col.names = c("Analysis Variable", "Distribution Result", "P Value", "Hypothesis", "Interpretation")) %>%
+  kable_styling(full_width = F)
 
 #### Normality of Distribution: 
 
@@ -186,6 +209,19 @@ shapiro.test(Purdy_Data$Richness)
 
 # USE STANDARD T-TEST
 
+Analysis_Variable <- c("Abundance", "Richness")
+Distribution_Value <- c("W = 0.92379", "W = 0.94747")
+P_Value <- c("P = 0.0298", "P = 0.1329")
+Hypothesis <- c("Reject Null", "Fail to Reject Null")
+Interpretation <- c("Not Normally Distributed", "Normally Distributed")
+
+Shapiro_Statistical_Results <- as.data.frame(cbind(Analysis_Variable, Distribution_Value, P_Value, Hypothesis, Interpretation))
+
+kable(Shapiro_Statistical_Results, booktabs = T, 
+      caption = "Overall Abundance and Richness Shapiro-Wilks Normality Test Results",
+      col.names = c("Analysis Variable", "Distribution Result", "P Value", "Hypothesis", "Interpretation")) %>%
+  kable_styling(full_width = F)
+
 ```
 
 ## Statistical Analysis
@@ -217,6 +253,23 @@ Abundance_Medians <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEDIAN_Abund
 
 Abundance_Medians
 
+#### Summary Table of Test Results
+
+Analysis_Variable <- c("Abundance", "Richness")
+Test_Type <- c("Wilcoxon Test", "T-Test")
+Distribution_Value <- c("W = 98", "t = -2.2945")
+P_Value <- c("P = 0.394", "P = 0.02919")
+Hypothesis <- c("Fail to Reject Null", "Reject Null")
+Interpretation <- c("No Median Difference", "Difference in Means")
+
+Statistical_Results <- as.data.frame(cbind(Analysis_Variable, Test_Type, Distribution_Value, P_Value, Hypothesis, Interpretation))
+
+kable(Statistical_Results, booktabs = T, 
+      caption = "Core Vs Edge Habitat Richness and Abundance Statistical Analysis Results",
+      col.names = c("Analysis Variable", "Test Type", "Distribution Result", "P Value", "Hypothesis", "Interpretation")) %>%
+  kable_styling(full_width = F)
+
+
 
 ```
 ## Visualization of Noise Level & Understory Density
@@ -237,6 +290,11 @@ Abundance_Noise_Habitat_Means <- Purdy_Data %>% group_by(Habitat, Noise_Level) %
 
 Abundance_Noise_Habitat_Means
 
+kable(Abundance_Noise_Habitat_Means, booktabs = T, 
+      caption = "Core Vs Edge Habitat Abundance Statistics by Noise Level",
+      col.names = c("Habitat", "Noise Level", "Mean Abundance", "Sample Size")) %>%
+  kable_styling(full_width = F)
+
 
 # Richness BoxPlot
 
@@ -250,6 +308,11 @@ ggplot(Purdy_Data , aes(x=Noise_Level, y=Richness, fill=Habitat))+
 Richness_Noise_Habitat_Means <- Purdy_Data %>% group_by(Noise_Level, Habitat) %>% summarise(MEAN_Richness = mean(Richness), Sample_Size = n())
 
 Richness_Noise_Habitat_Means
+
+kable(Richness_Noise_Habitat_Means, booktabs = T, 
+      caption = "Core Vs Edge Habitat Richness Statistics by Noise Level",
+      col.names = c("Habitat", "Noise Level", "Mean Richness", "Sample Size")) %>%
+  kable_styling(full_width = F)
 
 #### Understory Density
 
@@ -265,6 +328,11 @@ Abundance_UNDER_HABITAT_Means <- Purdy_Data %>% group_by(Habitat, Understory_Den
 
 Abundance_UNDER_HABITAT_Means
 
+kable(Abundance_UNDER_HABITAT_Means, booktabs = T, 
+      caption = "Core Vs Edge Habitat Abundance Statistics by Understory Density",
+      col.names = c("Habitat", "Understory Density", "Mean Richness", "Sample Size")) %>%
+  kable_styling(full_width = F)
+
 # Richness BoxPlot
 
 ggplot(Purdy_Data , aes(x=Understory_Density, y=Richness, fill=Habitat))+
@@ -274,6 +342,11 @@ ggplot(Purdy_Data , aes(x=Understory_Density, y=Richness, fill=Habitat))+
 Richness_UNDER_HABITAT_Means <- Purdy_Data %>% group_by(Habitat, Understory_Density) %>% summarise(MEAN_Richness = mean(Richness), Sample_Size = n())
 
 Richness_UNDER_HABITAT_Means
+
+kable(Richness_UNDER_HABITAT_Means, booktabs = T, 
+      caption = "Core Vs Edge Habitat Richness Statistics by Understory Density",
+      col.names = c("Habitat", "Understory Density", "Mean Richness", "Sample Size")) %>%
+  kable_styling(full_width = F)
 
 ```
 
