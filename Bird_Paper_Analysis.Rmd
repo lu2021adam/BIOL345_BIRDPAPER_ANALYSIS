@@ -111,10 +111,10 @@ ggplot(Purdy_Data , aes(x=Habitat, y=Richness, fill=Habitat))+
   labs(x= "Habitat Type", y= "Bird Species Richness")+
   scale_fill_manual(values = c("blue", "brown"))+
   stat_summary(fun.y = mean, shape = 1, color = "magenta")+
-  stat_compare_means(method = "t.test")+
+  stat_compare_means(method = "wilcox.test")+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
   panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-  stat_compare_means(label = "p.signif", method = "t.test", ref.group = "Core") 
+  stat_compare_means(label = "p.signif", method = "wilcox.test", ref.group = "Core") 
 
 ## Abundance/level 
 
@@ -172,21 +172,21 @@ kable(Levene_Statistical_Results, booktabs = T,
 
 # Visual Investigation
 
-Abundance_Distribution <- ggplot(Purdy_Data, aes(x = Abundance))+
-  geom_density(alpha = 0.8, fill = "blue", color = "magenta")+
+Abundance_Distribution <- ggplot(Purdy_Data, aes(Abundance,  fill = Habitat))+
+  geom_density(alpha = 0.8)+
   xlab("Overall Bird Abundance")+
   ylab("Frequency")+
   labs(title = "Bird Abundance Distribution")
 
-Richness_Distribution <- ggplot(Purdy_Data, aes(x = Richness))+
-  geom_density(alpha = 0.8, fill = "firebrick1", color = "green")+
+Richness_Distribution <- ggplot(Purdy_Data, aes(Richness, fill = Habitat))+
+  geom_density(alpha = 0.8)+
   xlab("Species Richness")+
   ylab("Frequency")+
   labs(title = "Bird Richness Distribution")
 
 grid.arrange(Abundance_Distribution, Richness_Distribution, ncol=2)
 
-# Abundance appears somewhat skewed right, but a chance at normality. Richness appears "relatively" normal 
+# Abundance appears somewhat skewed right for both habitats, but a chance at normality. Richness appears "relatively" normal for edge, but skewed for core.  
 
 # Shapiro Wilks Test
 
@@ -195,25 +195,54 @@ grid.arrange(Abundance_Distribution, Richness_Distribution, ncol=2)
 
 # Abundance: 
 
-shapiro.test(Purdy_Data$Abundance)
+# First Filter by Habitat Core and Edge
 
-# P = 0.0298; Reject NULL Hypothesis, Not Normally Distributed
+Purdy_Core <- Purdy_Data %>% filter(Habitat == "Core")
+Purdy_Edge <- Purdy_Data %>% filter(Habitat == "Edge")
 
-# USE WILCOXON NON-PARAMETRIC TEST
 
-# Richness:
+# Shapiro Test of Normality on Abundance by Core and Edge
 
-shapiro.test(Purdy_Data$Richness)
+## CORE
 
-# P = 0.1329; Fail to Reject NUll, Approximates Normal Distribution.
+shapiro.test(Purdy_Core$Abundance)
 
-# USE STANDARD T-TEST
+# P = 0.04809; Reject NULL Hypothesis, Not Normally Distributed
 
-Analysis_Variable <- c("Abundance", "Richness")
-Distribution_Value <- c("W = 0.92379", "W = 0.94747")
-P_Value <- c("P = 0.0298", "P = 0.1329")
-Hypothesis <- c("Reject Null", "Fail to Reject Null")
-Interpretation <- c("Not Normally Distributed", "Normally Distributed")
+## EDGE
+
+shapiro.test(Purdy_Edge$Abundance)
+
+# P = 0.1075; Fail to Reject NULL Hypothesis, Normally Distributed
+
+
+# Because Core non-normal, use non-parametric WILCOXON TEST
+
+
+## Shapiro Test of Normality on Richness by Core and Edge
+
+## CORE
+
+shapiro.test(Purdy_Core$Richness)
+
+# P = 0.01623; Reject NUll, NOT Normal Distribution.
+
+## EDGE
+
+shapiro.test(Purdy_Edge$Richness)
+
+# P = 0.6246; Fail to Reject NUll, Normal Distribution.
+
+
+# Because Core non-normal, use non-parametric WILCOXON TEST
+
+## Summary
+
+Analysis_Variable <- c("Abundance Core", "Abundance Edge", "Richness Core", "Richness Edge")
+Distribution_Value <- c("W = 0.88039", "W = 0.90785", "W = 0.84791", "W = 0.95794")
+P_Value <- c("P = 0.04809", "P = 0.1075", "P = 0.01623", "P = 0.6246")
+Hypothesis <- c("Reject Null", "Fail to Reject Null", "Reject Null", "Fail to Reject Null")
+Interpretation <- c("Not Normally Distributed", "Normally Distributed", "Not Normally Distributed", "Normally Distributed")
 
 Shapiro_Statistical_Results <- as.data.frame(cbind(Analysis_Variable, Distribution_Value, P_Value, Hypothesis, Interpretation))
 
@@ -227,19 +256,19 @@ kable(Shapiro_Statistical_Results, booktabs = T,
 ## Statistical Analysis
 
 ```{r}
-#### T-Test of Means: Richness
+#### Wilcoxon Nonparametric Test of Medians (locations): Richness
 
 # Null Hypothesis: The means of the groups being compared are not different
 # Alternative Hypothesis: The means of the groups being compared are different
 
-t.test(Richness ~ Habitat, data= Purdy_Data, var.equal= TRUE)
+wilcox.test(Richness ~ Habitat, data= Purdy_Data)
 
-# P = 0.02919; t = -2.2945
-# REJECT NULL: true difference in means is not equal to 0!
+# P = 0.02754; W = 64.5
+# REJECT NULL: true location shift (Median) is NOT equal to zero!
 
-Richness_Means <- Purdy_Data %>% group_by(Habitat) %>% summarise(MEAN_Richness = mean(Richness), Sample_Size = n())
+Richness_Medians <- Purdy_Data %>% group_by(Habitat) %>% summarise(Median_Richness = median(Richness), Sample_Size = n())
 
-Richness_Means
+Richness_Medians
 
 #### Wilcoxon Nonparametric Test of Medians (locations): Abundance
 
@@ -256,11 +285,11 @@ Abundance_Medians
 #### Summary Table of Test Results
 
 Analysis_Variable <- c("Abundance", "Richness")
-Test_Type <- c("Wilcoxon Test", "T-Test")
-Distribution_Value <- c("W = 98", "t = -2.2945")
-P_Value <- c("P = 0.394", "P = 0.02919")
+Test_Type <- c("Wilcoxon Test", "Wilcoxon Test")
+Distribution_Value <- c("W = 98", "W = 64.5")
+P_Value <- c("P = 0.394", "P = 0.02754")
 Hypothesis <- c("Fail to Reject Null", "Reject Null")
-Interpretation <- c("No Median Difference", "Difference in Means")
+Interpretation <- c("No Median Difference", "Difference in Medians")
 
 Statistical_Results <- as.data.frame(cbind(Analysis_Variable, Test_Type, Distribution_Value, P_Value, Hypothesis, Interpretation))
 
